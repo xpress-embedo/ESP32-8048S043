@@ -25,7 +25,7 @@
 
 // Private Function Prototypes
 uint16_t map( uint16_t n, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t  out_max );
-static esp_err_t touch_init( void );
+static esp_err_t i2c_init( void );
 static void gt911_touch_init( esp_lcd_touch_handle_t *tp );
 static void gt911_process( esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y, uint16_t *strength, uint8_t *point_num, uint8_t max_point_num );
 static void gt911_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data);
@@ -163,17 +163,17 @@ void lcd_init( void )
   ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LV_TICK_PERIOD_MS * 1000));  // here time is in micro seconds
 
   // touch handling
-  ESP_LOGI(TAG, "Touch-1");
-  ESP_ERROR_CHECK( touch_init() );
-  ESP_LOGI(TAG, "Touch-2");
+  ESP_ERROR_CHECK( i2c_init() );
   gt911_touch_init(&tp);
-  ESP_LOGI(TAG, "Touch-3");
 
   // Register a touch pad input device
-  lv_indev_drv_init(&indev_drv_tp);
-  indev_drv_tp.type = LV_INDEV_TYPE_POINTER;
-  indev_drv_tp.read_cb = gt911_touchpad_read;
-  indev_drv_tp.user_data = tp;
+  lv_indev_drv_init(&indev_drv_tp);             // Basic Initialization
+  indev_drv_tp.type = LV_INDEV_TYPE_POINTER;    // touchpad and mouse
+  indev_drv_tp.read_cb = gt911_touchpad_read;   // register callback
+  indev_drv_tp.user_data = tp;                  // user data
+  // Register the driver in LVGL and save the created input device object
+  // lv_indev_t * my_indev = lv_indev_drv_register(&indev_drv_tp);
+  lv_indev_drv_register(&indev_drv_tp);
 }
 
 
@@ -194,12 +194,19 @@ void lcd_set_backlight( bool state )
 }
 
 // Private Function Definition
+/**
+ * @brief Map Function, map the touch coordinates with reference to LCD coordinates
+ */
 uint16_t map( uint16_t n, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t  out_max )
 {
   return (n - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-static esp_err_t touch_init( void )
+/**
+ * @brief Initialize the I2C to be used with Touch
+ * @param none
+ */
+static esp_err_t i2c_init( void )
 {
   i2c_config_t config = {
     .mode = I2C_MODE_MASTER,
@@ -219,6 +226,10 @@ static esp_err_t touch_init( void )
   return i2c_driver_install( I2C_PORT, config.mode, 0, 0, 0 );
 }
 
+/**
+ * @brief Initialize the GT911 Touch Controller
+ * @param esp_lcd_touch_handle_t pointer to touch handle
+ */
 static void gt911_touch_init( esp_lcd_touch_handle_t *tp )
 {
   esp_lcd_panel_io_handle_t tp_io_handle = NULL;
@@ -260,6 +271,16 @@ static void gt911_touch_init( esp_lcd_touch_handle_t *tp )
   ESP_ERROR_CHECK( esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, tp) );
 }
 
+/**
+ * @brief This function returns the detected touch events and returns the values
+ *        of x and y coordinates after mapping.
+ * @param esp_lcd_touch_handle_t touch handle
+ * @param x pointer to x coordinate
+ * @param y pointer to y coordinate
+ * @prama strength
+ * @param point_num
+ * @param max_point_num
+ */
 static void gt911_process( esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y, uint16_t *strength, uint8_t *point_num, uint8_t max_point_num )
 {
   // in gt911_touchpad_read we ask for a single (1) measurement, so we do not loop over all points.
@@ -267,6 +288,11 @@ static void gt911_process( esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y, 
   *y = map(*y, TOUCH_V_RES_MIN, TOUCH_V_RES_MAX, 0, LCD_V_RES);
 }
 
+/**
+ * @brief Read the touch coordinates from the touch controller
+ * @param drv   pointer to input device driver structure
+ * @param data  pointer to data
+ */
 static void gt911_touchpad_read( lv_indev_drv_t *indev_drv, lv_indev_data_t *data )
 {
   esp_lcd_touch_handle_t tp = (esp_lcd_touch_handle_t)indev_drv->user_data;
