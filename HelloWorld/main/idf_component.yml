@@ -1,7 +1,7 @@
 ## IDF Component Manager Manifest File
 dependencies:
   espressif/esp_lcd_touch_gt911: "==1.1.0"
-  lvgl/lvgl: "==8.1.11"
+  lvgl/lvgl: "==8.3.11"
   ## Required IDF version
   idf:
     version: ">=4.1.0"
