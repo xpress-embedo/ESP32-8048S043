@@ -8,8 +8,6 @@
 #ifndef MAIN_LCD_H_
 #define MAIN_LCD_H_
 
-#include "esp_err.h"
-
 // LCD Screen Resolution
 #define LCD_H_RES                     (800)
 #define LCD_V_RES                     (480)
@@ -58,8 +56,7 @@
 #define TOUCH_FREQ_HZ                 (400000)
 
 // Public Function Declaration
-esp_err_t lcd_init( void );
-
-
+void lcd_init( void );
+void lcd_set_backlight( bool state );
 
 #endif /* MAIN_LCD_H_ */
