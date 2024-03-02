@@ -2,13 +2,12 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#include "lcd.h"
+#include "gui_mng.h"
 #include "lvgl.h"
 
 void app_main(void)
 {
-  lcd_init();
-  lcd_set_backlight(true);
+  gui_start();
 
   lv_obj_t * label1 = lv_label_create(lv_scr_act());
   lv_label_set_long_mode(label1, LV_LABEL_LONG_WRAP);     /*Break the long lines*/

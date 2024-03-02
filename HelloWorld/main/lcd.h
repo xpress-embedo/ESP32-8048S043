@@ -58,5 +58,7 @@
 // Public Function Declaration
 void lcd_init( void );
 void lcd_set_backlight( bool state );
+uint8_t gui_update_lock( void );
+void gui_update_unlock( void );
 
 #endif /* MAIN_LCD_H_ */

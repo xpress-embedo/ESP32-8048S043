@@ -27,11 +27,13 @@ static void lvgl_tick( void *arg );
 
 // Private Variables
 static const char *TAG = "LCD";
-static SemaphoreHandle_t lvgl_semaphore = NULL;
-static TaskHandle_t lcd_task_handle;
 
 
 // Public Function Definition
+/**
+ * @brief Initialize the LCD Display Drivers and LVGL Library
+ * @param None
+ */
 void lcd_init( void )
 {
   static esp_lcd_panel_handle_t panel_handle = NULL;
@@ -114,9 +116,8 @@ void lcd_init( void )
   ESP_LOGI(TAG, "Install RGB LCD panel driver");
   ESP_ERROR_CHECK( esp_lcd_new_rgb_panel(&panel_config, &panel_handle) );
 
-  ESP_LOGI(TAG, "Initialize RGB LCD panel Reset");
+  ESP_LOGI(TAG, "Initialize RGB LCD panel");
   ESP_ERROR_CHECK( esp_lcd_panel_reset(panel_handle) );
-  ESP_LOGI(TAG, "Initialize RGB LCD panel Initialize");
   ESP_ERROR_CHECK( esp_lcd_panel_init(panel_handle) );
 
   ESP_LOGI(TAG, "Initialize LVGL library");
@@ -152,11 +153,13 @@ void lcd_init( void )
   ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LV_TICK_PERIOD_MS * 1000));  // here time is in micro seconds
 
   // touch handling todo
-  lvgl_semaphore = xSemaphoreCreateMutex();
-
-  xTaskCreate( &lcd_task, "LCD Task", 4096*2, NULL, tskIDLE_PRIORITY, &lcd_task_handle);
 }
 
+
+/**
+ * @brief Turn On/Off the Backlight
+ * @param state true means turn on and false means off
+ */
 void lcd_set_backlight( bool state )
 {
   if( state )
@@ -170,6 +173,13 @@ void lcd_set_backlight( bool state )
 }
 
 // Private Function Definition
+
+/**
+ * @brief Flush Function for LVGL for updating the data on the LCD
+ * @param drv Display Driver Handle
+ * @param area Area
+ * @param color_map Color Values 
+ */
 static void lcd_flush_cb( lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map )
 {
   esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
@@ -180,19 +190,6 @@ static void lcd_flush_cb( lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t 
 
   esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
   lv_disp_flush_ready(drv);
-}
-
-void lcd_task( void *pvParameters )
-{
-  while(true)
-  {
-    vTaskDelay(pdMS_TO_TICKS(20));
-    if (pdTRUE == xSemaphoreTake(lvgl_semaphore, portMAX_DELAY))
-    {
-      lv_task_handler();
-      xSemaphoreGive(lvgl_semaphore);
-    }
-  }
 }
 
 /**
